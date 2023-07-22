@@ -2,7 +2,7 @@
 # @Author: foxwy
 # @Date:   2021-05-20 18:58:08
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-20 19:59:25
+# @Last Modified time: 2023-07-22 14:20:17
 
 """
 -----------------------------------------------------------------------------------------
@@ -189,7 +189,7 @@ if __name__ == '__main__':
     parser.add_argument("--P_proj", type=float, default="2", help="coefficient for proj method")
 
     opt = parser.parse_args()
-    #r_path = 'results/result2/' + opt.na_state + '/'
+    #r_path = 'results/result/' + opt.na_state + '/'
     #results = Net_train(opt, device, r_path)
 
 
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     '''
     opt.n_qubits = 9
     opt.na_state = 'real_random'
-    r_path = 'results/result2/' + opt.na_state + '/'
+    r_path = 'results/result/' + opt.na_state + '/'
     for sample in [10**5, 10**6, 10**7, 10**8, 10**9, None]:
         if sample is not None:
             opt.n_samples = sample
@@ -257,7 +257,7 @@ if __name__ == '__main__':
     opt.na_state = "W_P"
     opt.n_qubits = 5
     opt.noise = "no_noise"
-    r_path = 'results/result2/' + opt.na_state + '/'
+    r_path = 'results/result/' + opt.na_state + '/'
 
     for idx, P_s in enumerate([0, 0.01, 0.1, 0.2, 0.5, 1]):
         print('-'*20, idx, P_s)
@@ -285,7 +285,7 @@ if __name__ == '__main__':
     opt.n_qubits = 10
     opt.na_state = 'real_random'
     opt.map_method = 'chol_h'
-    r_path = 'results/result2/' + opt.na_state + '/'
+    r_path = 'results/result/' + opt.na_state + '/'
     for sample in [10**5, 10**6, 10**7, 10**8, 10**9, None]:
         if sample is not None:
             opt.n_samples = sample
@@ -313,7 +313,7 @@ if __name__ == '__main__':
     opt.noise = 'no_noise'
     opt.map_method = 'chol_h'
     opt.n_epochs = 10000
-    r_path = 'results/result2/' + opt.na_state + '/'
+    r_path = 'results/result/' + opt.na_state + '/'
     for n_qubit in [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]:
         opt.n_qubits = n_qubit
         save_data = {}
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     opt.na_state = 'real_random'
     opt.map_method = 'chol_h'
     opt.noise = 'depolar_noise'
-    r_path = 'results/result2/' + opt.na_state + '/'
+    r_path = 'results/result/' + opt.na_state + '/'
     for sample in [10**9]:
         opt.n_samples = sample
 
