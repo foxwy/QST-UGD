@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Author: foxwy
 # @Function: Provide some loss functions
-# @Paper: Unified factored and projected gradient descent for quantum state tomography
+# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
 
 import os
 import sys

@@ -2,8 +2,8 @@
 # @Author: yong
 # @Date:   2023-07-10 21:11:25
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-20 16:35:27
-# @Paper: Unified factored and projected gradient descent for quantum state tomography
+# @Last Modified time: 2023-07-25 22:10:21
+# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
 
 import torch
 from torch import Tensor

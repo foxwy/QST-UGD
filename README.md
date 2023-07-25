@@ -1,10 +1,28 @@
 # **Unifying the factored and projected gradient descent for quantum state tomography**
 
-The official Pytorch implementation of the paper named [`Unifying the factored and projected gradient descent for quantum state tomography`](https://arxiv.org/abs/2207.05341), under review.
+The official Pytorch implementation of the paper named [`Unifying the factored and projected gradient descent for quantum state tomography`](https://arxiv.org/abs/2207.05341v2), under review.
+
+[![arXiv](https://img.shields.io/badge/arXiv-<2207.05341v2>-<COLOR>.svg)](https://arxiv.org/abs/2207.05341v2)
 
 ### **Abstract**
 
 Reconstructing the state of many-body quantum systems is of fundamental importance in quantum information tasks, but extremely challenging due to the curse of dimensionality. In this work, we present an efficient quantum tomography approach that unifies the state factored and projected methods to tackle the rank-deficient issue and incorporates a momentum-accelerated Rprop gradient algorithm to speed up the optimization process. In particular, the techniques of state decomposition and P-order absolute projection are jointly introduced to ensure both the positivity and rank of state matrices learned in the maximum likelihood function. Further, the proposed state-mapping method can substantially improve the tomography accuracy of other QST algorithms. Finally, numerical experiments demonstrate that the unified strategy is able to tackle the rank-deficient problem and admit a faster convergence and excellent purity robustness. We find that our method can accomplish the task of full tomography of random 11-qubit mixed states within one minute.
+
+### **Citation**
+
+If you find our work useful in your research, please cite:
+
+```
+@ARTICLE{2023arXiv220705341W,
+    author = {{Wang}, Yong and {Liu}, Lijun and {Cheng}, Shuming and {Li}, Li and {Chen}, Jie},
+    title = "{Unifying the factored and projected gradient descent for quantum state tomography}",
+    journal = {arXiv e-prints},
+    year = 2023,
+    month = jul,
+    pages = {arXiv:2207.05341v2},
+    url = {https://doi.org/10.48550/arXiv.2207.05341}
+}
+```
 
 ## Getting started
 
@@ -18,7 +36,8 @@ This code was tested on the computer with a single Intel(R) Core(TM) i7-12700KF 
 - numpy==1.23.4
 - openpyxl==3.0.10
 - SciencePlots==2.0.1
-- scipy==1.9.1tqdm==4.64.1
+- scipy==1.9.1
+- tqdm==4.64.1
 
 ## Runs QST algorithms
 

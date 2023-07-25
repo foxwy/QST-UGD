@@ -2,10 +2,10 @@
 # @Author: yong
 # @Date:   2022-12-07 09:46:43
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-20 16:35:04
+# @Last Modified time: 2023-07-25 22:10:03
 # @Author: foxwy
 # @Method: "CG-APG" algorithm that combines an accelerated projected-gradient (APG) approach with the existing conjugate-gradient (CG) algorithm
-# @Paper: Unified factored and projected gradient descent for quantum state tomography
+# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
 
 import sys
 import numpy as np

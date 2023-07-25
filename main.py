@@ -2,13 +2,23 @@
 # @Author: foxwy
 # @Date:   2021-05-20 18:58:08
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-22 14:20:17
+# @Last Modified time: 2023-07-25 22:23:28
 
 """
 -----------------------------------------------------------------------------------------
     The main function of quantum state tomography, used in the experimental 
     part of the paper view, calls other implementations of the QST algorithm,
-    paper: ``# @Paper: Unified factored and projected gradient descent for quantum state tomography``.
+    paper: ``# @Paper: Unifying the factored and projected gradient descent for quantum state tomography``.
+
+    @ARTICLE{2023arXiv220705341W,
+        author = {{Wang}, Yong and {Liu}, Lijun and {Cheng}, Shuming and {Li}, Li and {Chen}, Jie},
+        title = "{Unifying the factored and projected gradient descent for quantum state tomography}",
+        journal = {arXiv e-prints},
+        year = 2023,
+        month = jul,
+        pages = {arXiv:2207.05341v2},
+        url = {https://doi.org/10.48550/arXiv.2207.05341}
+    }
 -----------------------------------------------------------------------------------------
 """
 

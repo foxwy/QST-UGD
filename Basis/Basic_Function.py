@@ -2,9 +2,9 @@
 # @Author: foxwy
 # @Date:   2021-04-30 09:48:23
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-20 16:34:12
+# @Last Modified time: 2023-07-25 22:09:16
 # @Function: Provide some of the most basic functions
-# @Paper: Unified factored and projected gradient descent for quantum state tomography
+# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
 
 import os
 import sys
