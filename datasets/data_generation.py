@@ -5,7 +5,6 @@
 
 import sys
 import time
-import random
 import numpy as np
 from numpy.random import default_rng
 import multiprocessing as mp
@@ -16,8 +15,7 @@ sys.path.append('..')
 
 # external libraries
 from Basis.Basis_State import Mea_basis
-from Basis.Basic_Function import (data_combination, 
-                                  qmt, 
+from Basis.Basic_Function import (qmt, 
                                   qmt_pure, 
                                   samples_mp, 
                                   qmt_torch, 
@@ -50,7 +48,7 @@ class PaState(Mea_basis):
         self.p = P_state
         self.ty_state = ty_state
 
-        if M is not None: # External assignment
+        if M is not None:  # External assignment
             self.M = M
             
         if type(rho_star) is np.ndarray or type(rho_star) is torch.Tensor:  # External assignment

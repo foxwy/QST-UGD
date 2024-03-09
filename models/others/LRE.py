@@ -2,7 +2,7 @@
 # @Author: yong
 # @Date:   2022-12-07 09:46:43
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-25 22:09:59
+# @Last Modified time: 2024-03-09 22:39:44
 # @Author: foxwy
 # @Method: linear regression estimation, recursive LRE algorithm
 # @Paper: Unifying the factored and projected gradient descent for quantum state tomography
@@ -99,25 +99,23 @@ def LRE(M, n_qubits, P_data, fid, map_method, P_proj, result_save, device='cpu')
     # state-mapping
     if map_method == 'chol':
         T = torch.tril(rho)
-        T_temp = torch.matmul(T.T.conj(), T)
-        rho = T_temp / torch.trace(T_temp)
+        rho = torch.matmul(T.T.conj(), T)
     elif map_method == 'chol_h':
-        T_temp = torch.matmul(rho.T.conj(), rho)
-        rho = T_temp / torch.trace(T_temp)
+        rho = torch.matmul(rho.T.conj(), rho)
     else:
         rho = proj_spectrahedron_torch(rho, device, map_method, P_proj)
+
+    rho = rho / torch.trace(rho)
 
     time_e = perf_counter()
     time_all = time_e - time_b
 
     # show and save
-    Fc = fid.cFidelity_rho(rho)
     Fq = fid.Fidelity(rho)
 
     result_save['time'].append(time_all)
-    result_save['Fc'].append(Fc)
     result_save['Fq'].append(Fq)
-    print("Fc {:.12f} | Fq {:.16f} | time {:.4f}".format(Fc, Fq, time_all))
+    print("Fq {:.16f} | time {:.4f}".format(Fq, time_all))
 
 
 def RLRE(M, n_qubits, P_data, fid, device='cpu'):

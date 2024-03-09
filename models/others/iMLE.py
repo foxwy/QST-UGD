@@ -2,7 +2,7 @@
 # @Author: yong
 # @Date:   2022-12-07 09:46:43
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-25 22:09:56
+# @Last Modified time: 2024-03-09 22:39:24
 # @Author: foxwy
 # @Method: iterative maximum likelihood estimation
 # @Paper: Unifying the factored and projected gradient descent for quantum state tomography
@@ -45,7 +45,7 @@ def iMLE(M, n_qubits, P_data, epochs, fid, result_save, device='cpu'):
     # rho random init
     rho_t = torch.randn(d, d).to(torch.complex64).to(device)
     rho_t = torch.matmul(rho_t, rho_t.T.conj())
-    rho =  rho_t / torch.trace(rho_t)
+    rho = rho_t / torch.trace(rho_t)
 
     # iterative
     pbar = tqdm(range(epochs))
@@ -65,17 +65,15 @@ def iMLE(M, n_qubits, P_data, epochs, fid, result_save, device='cpu'):
         time_e = perf_counter()
         time_all += time_e - time_b
 
-        if (i + 1) % 20 == 0:
-            Fc = fid.cFidelity_rho(rho)
+        if (i + 1) % 20 == 0 or i == 0:
             Fq = fid.Fidelity(rho)
 
             result_save['time'].append(time_all)
             result_save['epoch'].append(i + 1)
-            result_save['Fc'].append(Fc)
             result_save['Fq'].append(Fq)
-            pbar.set_description("iMLE --Fc {:.8f} | Fq {:.8f} | time {:.4f} | epochs {:d}".format(Fc, Fq, time_all, i + 1))
+            pbar.set_description("iMLE Fq {:.8f} | time {:.4f} | epochs {:d}".format(Fq, time_all, i + 1))
 
-            if Fq >= 0.99:
+            if Fq >= 0.99999:
                 break
 
     pbar.close()

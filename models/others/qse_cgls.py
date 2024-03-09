@@ -2,7 +2,7 @@
 # @Author: yong
 # @Date:   2022-12-07 09:46:43
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-25 22:10:06
+# @Last Modified time: 2024-03-09 22:45:50
 # @Author: foxwy
 # @Method: conjugate-gradient algorithm
 # @Paper: Unifying the factored and projected gradient descent for quantum state tomography
@@ -24,7 +24,7 @@ from evaluation.Fidelity import Fid
 from Basis.Basis_State import Mea_basis, State
 
 
-def qse_cgls(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, device='cpu'):
+def qse_cgls(M, n_qubits, P_data, epochs, fid, result_save, device='cpu'):
     """
     conjugate-gradient algorithm, see paper
     ``Superfast maximum-likelihood reconstruction for quantum tomography``.
@@ -35,8 +35,6 @@ def qse_cgls(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, 
         P_data (tensor): The probability distribution obtained from the experimental measurements.
         epochs (int): Maximum number of iterations.
         fid (Fid): Class for calculating fidelity.
-        map_method (str): State-mapping method, include ['chol', 'chol_h', 'proj_F', 'proj_S', 'proj_A'].
-        P_proj (float): P order.
         result_save (set): A collection that holds process data.
         device (torch.device): GPU or CPU. 
 
@@ -59,20 +57,9 @@ def qse_cgls(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, 
     # rho init
     #A = (torch.eye(d) / torch.sqrt(d)).to(torch.complex128).to(device)
     #rho = (torch.eye(d) / d).to(torch.complex128).to(device)
-
-    if map_method == 'chol':
-        T = torch.randn(d, d).to(torch.complex128).to(device)
-        T_triu = torch.triu(T, 1)
-        A = torch.tril(T) + 1j * T_triu.T
-        rho = torch.matmul(A.T.conj(), A)
-        rho = rho / torch.trace(rho)
-    elif map_method == 'chol_h':
-        T = torch.randn(d, d).to(torch.complex128).to(device)
-        T_triu = torch.triu(T, 1)
-        A = torch.tril(T) + 1j * T_triu.T
-        A += torch.tril(A, -1).T.conj()
-        rho = torch.matmul(A.T.conj(), A)
-        rho = rho / torch.trace(rho)
+    A = torch.randn(d, d).to(torch.complex128).to(device)
+    rho = torch.matmul(A.T.conj(), A)
+    rho = rho / torch.trace(rho)
 
     # -----line search stuff-----
     a2 = opts['a2']
@@ -159,15 +146,8 @@ def qse_cgls(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, 
         old_rho = rho
 
         # map
-        if map_method == 'chol':
-            T = torch.tril(A)
-            T_temp = torch.matmul(T.T.conj(), T)
-            rho = T_temp / torch.trace(T_temp)
-        elif map_method == 'chol_h':
-            T_temp = torch.matmul(A.T.conj(), A)
-            rho = T_temp / torch.trace(T_temp)
-        else:
-            rho = proj_spectrahedron_torch(A, device, map_method, P_proj)
+        T_temp = torch.matmul(A.T.conj(), A)
+        rho = T_temp / torch.trace(T_temp)
 
         probs = qmt_torch(rho, [M] * n_qubits)
         fval = -P_data[P_data > 0].dot(torch.log(probs[P_data > 0]))
@@ -192,21 +172,19 @@ def qse_cgls(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, 
 
         # evalution
         Fq = 0
-        if (i + 1) % 20 == 0:
-            Fc = fid.cFidelity_rho(rho.to(torch.complex64))
+        if (i + 1) % 20 == 0 or i == 0:
             Fq = fid.Fidelity(rho.to(torch.complex64))
 
             result_save['time'].append(time_all)
             result_save['epoch'].append(i + 1)
-            result_save['Fc'].append(Fc)
             result_save['Fq'].append(Fq)
-            pbar.set_description("CGL --Fc {:.8f} | Fq {:.8f} | time {:.4f} | epochs {:d}".format(Fc, Fq, time_all, i + 1))
+            pbar.set_description("CGL Fq {:.8f} | time {:.4f} | epochs {:d}".format(Fq, time_all, i + 1))
 
         if (not curvature_too_large and satisfied_step) or satisfied_fval or condchange < opts['mincondchange']:
             stop_i = i
             break
-
-        if Fq >= 0.99:
+            
+        if Fq >= 0.99999:
             break
 
     pbar.close()
@@ -218,7 +196,7 @@ def qse_cgls(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, 
 
 
 if __name__ == '__main__':
-    n_qubits = 2
+    n_qubits = 8
     POVM = 'Tetra4'
     ty_state = 'mixed'
     na_state = 'GHZi_P'
@@ -239,4 +217,4 @@ if __name__ == '__main__':
                    'epoch': [],
                    'Fc': [],
                    'Fq': []}
-    qse_cgls(M, n_qubits, P_data, 200, fid, 'chol_h', 2, result_save, device)
+    qse_cgls(M, n_qubits, P_data, 1000, fid, result_save, device)

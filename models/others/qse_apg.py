@@ -2,7 +2,7 @@
 # @Author: yong
 # @Date:   2022-12-07 09:46:43
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-25 22:10:03
+# @Last Modified time: 2024-03-09 22:48:13
 # @Author: foxwy
 # @Method: "CG-APG" algorithm that combines an accelerated projected-gradient (APG) approach with the existing conjugate-gradient (CG) algorithm
 # @Paper: Unifying the factored and projected gradient descent for quantum state tomography
@@ -19,7 +19,6 @@ torch.set_default_dtype(torch.double)
 sys.path.append('../..')
 
 from Basis.Basic_Function import (qmt_torch,
-                                  qmt_matrix,
                                   qmt_matrix_torch,
                                   get_default_device,
                                   proj_spectrahedron_torch)
@@ -79,7 +78,7 @@ def qse_apg(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, d
             # adjustment vector stops changing by much
             coeff_temp[fmap] = P_data
             rho, stop_i, time_all = qse_cgls(
-                M, n_qubits, coeff_temp, epochs, fid, map_method, P_proj, result_save, device)
+                M, n_qubits, coeff_temp, epochs, fid, result_save, device)
         else:
             print('unknown initializer specification: ', opts['rho0'])
     else:
@@ -101,6 +100,7 @@ def qse_apg(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, d
     # -----main loop-----
     epochs = epochs - stop_i - 1
     pbar = tqdm(range(epochs))
+    time_all = 0
     for i in pbar:
         time_b = perf_counter()
 
@@ -157,20 +157,9 @@ def qse_apg(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, d
                     t = t * opts['bfactor']
 
             # map
-            map_method = 'proj_S'
-            if map_method == 'chol':
-                T = torch.tril(varrho - t * gradient)
-                T_temp = torch.matmul(T.T.conj(), T)
-                rho_new = T_temp / torch.trace(T_temp)
-            elif map_method == 'chol_h':
-                T_temp = torch.matmul(
-                    (varrho - t * gradient).T.conj(), (varrho - t * gradient))
-                rho_new = T_temp / torch.trace(T_temp)
-            else:
-                rho_new = proj_spectrahedron_torch(
+            #map_method = 'proj_S'
+            rho_new = proj_spectrahedron_torch(
                     varrho - t * gradient, device, map_method, P_proj, 0)
-
-            # rho_new = proj_spectrahedron_torch(varrho - t * gradient, device, 'proj_S', 1, 0)
 
             # rho_new = varrho - t * gradient
             probs_rho_new = qmt_torch(rho_new, [M] * n_qubits, True)
@@ -254,25 +243,23 @@ def qse_apg(M, n_qubits, P_data, epochs, fid, map_method, P_proj, result_save, d
         time_e = perf_counter()
         time_all += time_e - time_b
 
-        if (i + 1) % 20 == 0:
-            Fc = fid.cFidelity_rho(rho.to(torch.complex64))
+        if (i + stop_i) % 20 == 0:
             Fq = fid.Fidelity(rho.to(torch.complex64))
 
             result_save['time'].append(time_all)
             result_save['epoch'].append(i + stop_i)
-            result_save['Fc'].append(Fc)
             result_save['Fq'].append(Fq)
             pbar.set_description(
-                "APG --Fc {:.8f} | Fq {:.8f} | time {:.4f} | epochs {:d}".format(Fc, Fq, time_all, i + stop_i))
+                "APG Fq {:.8f} | time {:.4f} | epochs {:d}".format(Fq, time_all, i + stop_i))
 
-            if Fq >= 0.99:
+            if Fq >= 0.99999:
                 break
 
     pbar.close()
 
 
 if __name__ == '__main__':
-    n_qubits = 10
+    n_qubits = 8
     POVM = 'Tetra4'
     ty_state = 'mixed'
     na_state = 'GHZi_P'
@@ -294,4 +281,4 @@ if __name__ == '__main__':
                    'epoch': [],
                    'Fc': [],
                    'Fq': []}
-    qse_apg(M, n_qubits, P_data, 1000, fid, 'chol_h', 2, result_save, device)
+    qse_apg(M, n_qubits, P_data, 1000, fid, 'proj_S', 1, result_save, device)

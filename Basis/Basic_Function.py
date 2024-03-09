@@ -2,13 +2,13 @@
 # @Author: foxwy
 # @Date:   2021-04-30 09:48:23
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-25 22:09:16
+# @Last Modified time: 2024-03-09 23:04:34
 # @Function: Provide some of the most basic functions
 # @Paper: Unifying the factored and projected gradient descent for quantum state tomography
 
 import os
 import sys
-import time
+from time import perf_counter
 import random
 import numpy as np
 from scipy.linalg import eigh
@@ -333,6 +333,16 @@ def Find_x(x, b):
             y = x[mid_idx:]
             y[0] += sum(x[:mid_idx])
             return mid_idx + Find_x(y, b)
+
+
+def torch_sqrtm(rho):
+    """the sqrt of a Hermitian matrix"""
+    eigenvalues, eigenvecs = torch.linalg.eigh(rho)  # eigenvalues[i], eigenvecs[:, i]
+
+    A = eigenvecs * torch.sqrt(torch.abs(eigenvalues))
+    rho_sqrt = torch.matmul(A, eigenvecs.T.conj())
+
+    return rho_sqrt
 
 
 def shuffle_forward(rho, dims):
@@ -683,7 +693,7 @@ def qmt_product_torch(operators_1, operators_2):
 
 def proj_spectrahedron(rho):
     """
-    Transformation of non-Hermitian matrix to nearest density matrix, F projection state-mapping method, 
+    Transformation of Hermitian matrix to nearest density matrix, F projection state-mapping method, 
     see paper ``Efficient method for computing the maximum-likelihood quantum state from 
     measurements with additive gaussian noise``,
     this is [numpy] version we implemented.
@@ -702,29 +712,28 @@ def proj_spectrahedron(rho):
     return rho
 
 
-def eigenvalues_trans_S(eigenvalues, device):
+def proj_to_sum_one(x, fl):
     """
-    Transformation of non-Hermitian matrix to nearest density matrix, S projection state-mapping method,
-    see paper ``A practical and efficient approach for bayesian quantum state estimation``,
-    this is [torch] version we implemented.
+    project x in to a unit vector according to fl
     """
-    u, _ = torch.sort(eigenvalues)
-    csu = torch.cumsum(u, 0)
-    t = (csu - 1) / torch.arange(1, len(u) + 1).to(device)
-    idx_max = torch.nonzero(u > t)[-1, 0]
-    eigenvalues = torch.maximum(eigenvalues - t[idx_max], torch.tensor(0))
+    if fl == 1:
+        x = x / torch.sum(x)
 
-    return eigenvalues
+    elif fl == 2:
+        x = x + (1 - torch.sum(x)) / len(x)
+
+    return x
 
 
-def eigenvalues_trans_F(eigenvalues, device):
+def eigenvalues_trans_F(eigenvalues, device, fl):
     """
-    Transformation of non-Hermitian matrix to nearest density matrix, F projection state-mapping method, 
+    Transformation of Hermitian matrix to nearest density matrix, F projection state-mapping method, 
     see paper ``Efficient method for computing the maximum-likelihood quantum state from 
     measurements with additive gaussian noise``,
     this is [torch] version we implemented.
     """
-    eigenvalues = eigenvalues / torch.sum(eigenvalues)
+    eigenvalues = proj_to_sum_one(eigenvalues, fl)  # unit sum
+
     u, _ = torch.sort(eigenvalues)
     csu = torch.cumsum(u, 0)
     csu0 = torch.zeros_like(csu).to(device)
@@ -736,9 +745,28 @@ def eigenvalues_trans_F(eigenvalues, device):
     return eigenvalues
 
 
+def eigenvalues_trans_S(eigenvalues, device):
+    """
+    Transformation of Hermitian matrix to nearest density matrix, S projection state-mapping method,
+    see paper ``A projected gradient method for optimization over density matrices``,
+    this is [torch] version we implemented.
+    """
+
+    idxs = np.arange(len(eigenvalues))
+    for i in range(len(eigenvalues)):
+        eigenvalues[idxs] = proj_to_sum_one(eigenvalues[idxs], 2)
+        if min(eigenvalues) >= 0:
+            break
+        else:
+            eigenvalues[eigenvalues < 0] = 0
+            idxs = eigenvalues > 0
+
+    return eigenvalues
+
+
 def eigenvalues_trans_abs(eigenvalues, P_proj):
     """
-    Transformation of non-Hermitian matrix to nearest density matrix, P-order absolute 
+    Transformation of Hermitian matrix to nearest density matrix, P-order absolute 
     projection state-mapping method, see our paper ``Ultrafast quantum state tomography 
     with feed-forward neural networks``.
 
@@ -769,27 +797,17 @@ def proj_spectrahedron_torch(rho, device, map_method, P_proj=2, trace_flag=1):
         The real density matrix.
     """
     eigenvalues, eigenvecs = torch.linalg.eigh(rho)  # eigenvalues[i], eigenvecs[:, i]
-    #print(eigenvalues)
 
-    #eigenvalues = softmax(eigenvalues, 0)
     if map_method == 'proj_F':
-        eigenvalues = eigenvalues_trans_F(eigenvalues, device)
+        eigenvalues = eigenvalues_trans_F(eigenvalues, device, 1)
     elif map_method == 'proj_S':
-        eigenvalues = eigenvalues_trans_S(eigenvalues, device)
+        eigenvalues = eigenvalues_trans_F(eigenvalues, device, 2)
     elif map_method == 'proj_A':
         eigenvalues = eigenvalues_trans_abs(eigenvalues, P_proj)
-    elif map_method == 'proj_Com':
-        eigenvalues_F = eigenvalues_trans_F(eigenvalues, device)
-        eigenvalues_A = eigenvalues_trans_abs(eigenvalues, P_proj)
-        eigenvalues = torch.clone(eigenvalues_A)
-        eigenvalues[-1] = eigenvalues_F[-1]
-        eigenvalues[:-1] = eigenvalues_A[:-1] / (torch.sum(eigenvalues_A[:-1])) * (1.0 - eigenvalues_F[-1])
-        #eigenvalues = eigenvalues / torch.sum(eigenvalues)
     else:
         print('we have not this map method! please check setting!!!')
-    #print(eigenvalues)
 
-    A = eigenvecs * eigenvalues
+    A = eigenvecs * abs(eigenvalues)
     rho = torch.matmul(A, eigenvecs.T.conj())
     rho = 0.5 * (rho + rho.T.conj())
     if trace_flag == 1:
@@ -864,4 +882,17 @@ if __name__ == '__main__':
     operators = torch.tensor([[[1, 2j], [1, 1j]], [[2, 3], [2, 2]]])
     print(qmt_matrix_torch(coeffs, operators))'''
 
-    print(onehot(np.array([[3, 2], [1, 0]]), 4))
+    #print(onehot(np.array([[3, 2], [1, 0]]), 4))
+
+    x = torch.tensor(np.random.normal(size=2**3))
+    print('---x', x)
+
+    y = proj_to_sum_one(x, 1)
+    print(y, sum(y))
+
+    y = proj_to_sum_one(x, 2)
+    print(y, sum(y))
+
+    print('F---', eigenvalues_trans_F(x, 'cpu', 1))
+    print('S---', eigenvalues_trans_F(x, 'cpu', 2))
+    print('soft---', softmax(x, 0), sum(softmax(x, 0)))

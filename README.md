@@ -1,8 +1,8 @@
 # **Unifying the factored and projected gradient descent for quantum state tomography**
 
-The official Pytorch implementation of the paper named [`Unifying the factored and projected gradient descent for quantum state tomography`](https://arxiv.org/abs/2207.05341v2), under review.
+The official Pytorch implementation of the paper named [`Unifying the factored and projected gradient descent for quantum state tomography`](https://arxiv.org/abs/2207.05341v3), under review.
 
-[![arXiv](https://img.shields.io/badge/arXiv-<2207.05341v2>-<COLOR>.svg)](https://arxiv.org/abs/2207.05341v2)
+[![arXiv](https://img.shields.io/badge/arXiv-<2207.05341v3>-<COLOR>.svg)](https://arxiv.org/abs/2207.05341v3)
 
 ### **Abstract**
 
@@ -19,7 +19,7 @@ If you find our work useful in your research, please cite:
     journal = {arXiv e-prints},
     year = 2023,
     month = jul,
-    pages = {arXiv:2207.05341v2},
+    pages = {arXiv:2207.05341v3},
     url = {https://doi.org/10.48550/arXiv.2207.05341}
 }
 ```
@@ -53,85 +53,94 @@ parser.add_argument("--POVM", type=str, default="Tetra4", help="type of POVM")
 parser.add_argument("--K", type=int, default=4, help='number of operators in single-qubit POVM')
 
 parser.add_argument("--na_state", type=str, default="real_random", help="name of state in library")
-parser.add_argument("--P_state", type=float, default=0.6, help="P of mixed state")
+parser.add_argument("--P_state", type=float, default=0.5, help="P of mixed state")
 parser.add_argument("--ty_state", type=str, default="mixed", help="type of state (pure, mixed)")
 parser.add_argument("--n_qubits", type=int, default=8, help="number of qubits")
 
-parser.add_argument("--noise", type=str, default="no_noise", help="have or have not sample noise (noise, no_noise, depolar_noise)")
-parser.add_argument("--n_samples", type=int, default=1000000, help="number of samples")
+parser.add_argument("--noise", type=str, default="noise", help="have or have not sample noise (noise, no_noise, depolar_noise)")
+parser.add_argument("--n_samples", type=int, default=int(1e11), help="number of samples")
 parser.add_argument("--P_povm", type=float, default=1, help="possbility of sampling POVM operators")
 parser.add_argument("--seed_povm", type=float, default=1.0, help="seed of sampling POVM operators")
 parser.add_argument("--read_data", type=bool, default=False, help="read data from text in computer")
 
 parser.add_argument("--n_epochs", type=int, default=1000, help="number of epochs of training")
-parser.add_argument("--lr", type=float, default=0.001, help="optim: learning rate")
+parser.add_argument("--lr", type=float, default=0.5, help="optim: learning rate")
 
-parser.add_argument("--map_method", type=str, default="chol_h", help="map method for output vector to density matrix (chol, chol_h, proj_F, proj_S, proj_A)")
+parser.add_argument("--map_method", type=str, default="fac_h", help="map method for output vector to density matrix (fac_t, fac_h, fac_a, proj_F, proj_S, proj_A)")
 parser.add_argument("--P_proj", type=float, default="2", help="coefficient for proj method")
 ```
 
-### 2. Run UGD algorithm (`Net_train`)
+### 2. Run UGD with MRprop algorithm (`main`)
 
 ```python
-print('\n'+'-'*20+'UGD'+'-'*20)
-gen_net = UGD_nn(opt.n_qubits, P_idxs, M, 
+print('\n'+'-'*20+'UGD_MRprop'+'-'*20)
+gen_net = UGD_nn(opt.n_qubits, P_idxs, M,
                  map_method=opt.map_method, P_proj=opt.P_proj).to(torch.float32).to(device)
 
-net = UGD(gen_net, data, opt.lr)
+net = UGD(gen_net, data, opt.lr, optim_f="M")
 result_save = {'parser': opt,
                'time': [], 
                'epoch': [],
-               'Fc': [],
                'Fq': []}
 net.train(opt.n_epochs, fid, result_save)
 result_saves['UGD'] = result_save
 ```
+### 3. Run UGD with MGD algorithm (`main`)
 
-### 3. Run iMLE algorithm (`Net_train`)
+```python
+print('\n'+'-'*20+'UGD_MGD'+'-'*20)
+gen_net = UGD_nn(opt.n_qubits, P_idxs, M, 
+                 map_method=opt.map_method, P_proj=opt.P_proj).to(torch.float32).to(device)
+
+net = UGD(gen_net, data, opt.lr, optim_f="S")
+result_save = {'parser': opt,
+               'time': [], 
+               'epoch': [],
+               'Fq': []}
+net.train(opt.n_epochs, fid, result_save)
+result_saves['UGD_MGD'] = result_save
+```
+### 4. Run iMLE algorithm (`main`)
 
 ```python
 print('\n'+'-'*20+'iMLE'+'-'*20)
 result_save = {'parser': opt,
                'time': [], 
                'epoch': [],
-               'Fc': [],
                'Fq': []}
 iMLE(M, opt.n_qubits, data_all, opt.n_epochs, fid, result_save, device)
 result_saves['iMLE'] = result_save
 ```
 
-### 4. Run CG-APG algorithm (`Net_train`)
+### 5. Run CG-APG algorithm (`main`)
 
 ```python
-print('\n'+'-'*20+'QSE APG'+'-'*20)
+print('\n'+'-'*20+'CG-APG'+'-'*20)
 result_save = {'parser': opt,
                'time': [], 
                'epoch': [],
-               'Fc': [],
                'Fq': []}
-qse_apg(M, opt.n_qubits, data_all, opt.n_epochs, fid, 'chol_h', 2, result_save, device)
+qse_apg(M, opt.n_qubits, data_all, opt.n_epochs, fid, 'proj_S', 2, result_save, device)
 result_saves['APG'] = result_save
 ```
 
-### 5. Run LRE algorithm (`Net_train`)
+### 6. Run LRE algorithm (`main`)
 
 ```python
 print('\n'+'-'*20+'LRE'+'-'*20)
 result_save = {'parser': opt,
                'time': [],
-               'Fc': [],
                'Fq': []}
-LRE(M, opt.n_qubits, data_all, fid, 'proj_F', 1, result_save, device)
+LRE(M, opt.n_qubits, data_all, fid, 'proj_S', 1, result_save, device)
 result_saves['LRE'] = result_save
 ```
 
-### 6. Run LRE algorithm with ProjA_1 (`Net_train`)
+### 7. Run LRE algorithm with ProjA_1 (`main`)
 
 ```python
 print('\n'+'-'*20+'LRE proj'+'-'*20)
 result_save = {'parser': opt,
                'time': [],
-               'Fc': [],
                'Fq': []}
 LRE(M, opt.n_qubits, data_all, fid, 'proj_A', 1, result_save, device)
 result_saves['LRE_projA'] = result_save

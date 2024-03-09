@@ -2,7 +2,7 @@
 # @Author: foxwy
 # @Date:   2021-01-19 15:38:06
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-25 22:09:20
+# @Last Modified time: 2023-11-25 23:37:03
 # @Function: Quantum state and quantum measurment
 # @Paper: Unifying the factored and projected gradient descent for quantum state tomography
 

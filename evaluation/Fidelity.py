@@ -8,13 +8,11 @@ import numpy as np
 import torch
 from scipy.linalg import eigh
 import time
-#import tensorly as tl
-#from tensorly.decomposition import matrix_product_state
 
 #torch.set_default_dtype(torch.double)
 
 sys.path.append('..')
-from Basis.Basic_Function import qmt, qmt_pure, qmt_torch, qmt_torch_pure
+from Basis.Basic_Function import qmt, qmt_pure, qmt_torch, qmt_torch_pure, torch_sqrtm
 from Basis.Basis_State import Mea_basis, State
 
 
@@ -75,26 +73,21 @@ class Fid(Mea_basis):
             tmp = torch.matmul(self.rho_star.T.conj(), rho)[0, 0]
             Fq = (tmp * tmp.conj()).real
         else:
+            # density matrix
+            rho = 0.5 * (rho + rho.T.conj())
             rho = rho / torch.trace(rho)
+
             if self.pure_flag == 1:
                 Fq = torch.matmul(torch.matmul(self.rho_p.T.conj(), rho), self.rho_p)[0, 0].real
-            else:
-                eigenvalues, eigenvecs = torch.linalg.eigh(self.rho_star)
-                eigenvalues = torch.abs(eigenvalues)
-                sqrt_rho = torch.matmul(eigenvecs * torch.sqrt(eigenvalues), eigenvecs.T.conj())  # sqrtm(self.rho_star)
-                rho_tmp = torch.matmul(torch.matmul(sqrt_rho, rho), sqrt_rho)  # sqrtm(self.rho_star).dot(rho).dot(sqrtm(self.rho_star))
-
-                try:
-                    eigenvalues = torch.linalg.eigvalsh(rho_tmp)  # fast, in some special cases, an error will be reported
-                except Exception:
-                    print('error')
-                    eigenvalues = torch.linalg.eigvals(rho_tmp)  # low
+            else:  # ref. [Efficiently computing the Uhlmann fidelity for density matrices]
+                rho_tmp = torch.matmul(rho, self.rho_star)
+                eigenvalues = torch.linalg.eigvals(rho_tmp)  # low
 
                 sqrt_eigvals = torch.sqrt(torch.abs(eigenvalues))
                 Fq = torch.sum(sqrt_eigvals)**2  # trace(sqrtm(sqrtm(self.rho_star).dot(rho).dot(sqrtm(self.rho_star))))**2
 
-        if Fq > 1:
-            Fq = 1  # precision error
+        Fq = torch.maximum(torch.minimum(Fq, torch.tensor(1)), torch.tensor(0))  # Fq range [0, 1]
+
         return Fq
 
     def cFidelity_rho(self, rho):
