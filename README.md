@@ -1,26 +1,31 @@
-# **Unifying the factored and projected gradient descent for quantum state tomography**
+# **Efficient factored gradient descent algorithm for quantum state tomography**
 
-The official Pytorch implementation of the paper named [`Unifying the factored and projected gradient descent for quantum state tomography`](https://arxiv.org/abs/2207.05341v3), under review.
+The official Pytorch implementation of the paper named [`Efficient factored gradient descent algorithm for quantum state tomography`](https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.6.033034), has been accepted by Physical Review Research.
 
-[![arXiv](https://img.shields.io/badge/arXiv-<2207.05341v3>-<COLOR>.svg)](https://arxiv.org/abs/2207.05341v3)
+[![arXiv](https://img.shields.io/badge/arXiv-<2207.05341v4>-<COLOR>.svg)](https://arxiv.org/abs/2207.05341v4)
 
 ### **Abstract**
 
-Reconstructing the state of many-body quantum systems is of fundamental importance in quantum information tasks, but extremely challenging due to the curse of dimensionality. In this work, we present an efficient quantum tomography approach that unifies the state factored and projected methods to tackle the rank-deficient issue and incorporates a momentum-accelerated Rprop gradient algorithm to speed up the optimization process. In particular, the techniques of state decomposition and P-order absolute projection are jointly introduced to ensure both the positivity and rank of state matrices learned in the maximum likelihood function. Further, the proposed state-mapping method can substantially improve the tomography accuracy of other QST algorithms. Finally, numerical experiments demonstrate that the unified strategy is able to tackle the rank-deficient problem and admit a faster convergence and excellent purity robustness. We find that our method can accomplish the task of full tomography of random 11-qubit mixed states within one minute.
+Reconstructing the state of quantum many-body systems is of fundamental importance in quantum information tasks, but extremely challenging due to the curse of dimensionality. In this work, we present an efficient quantum tomography protocol that combines the state-factored with eigenvalue mapping to address the rank-deficient issue and incorporates a momentum-accelerated gradient descent algorithm to speed up the optimization process. We implement extensive numerical experiments to demonstrate that our factored gradient descent algorithm efficiently mitigates the rank-deficient problem and admits orders of magnitude better tomography accuracy and faster convergence. We also find that our method can accomplish the full-state tomography of random 11-qubit mixed states within one minute.
 
 ### **Citation**
 
 If you find our work useful in your research, please cite:
 
 ```
-@ARTICLE{2023arXiv220705341W,
-    author = {{Wang}, Yong and {Liu}, Lijun and {Cheng}, Shuming and {Li}, Li and {Chen}, Jie},
-    title = "{Unifying the factored and projected gradient descent for quantum state tomography}",
-    journal = {arXiv e-prints},
-    year = 2023,
-    month = jul,
-    pages = {arXiv:2207.05341v3},
-    url = {https://doi.org/10.48550/arXiv.2207.05341}
+@article{PhysRevResearch.6.033034,
+  title = {Efficient factored gradient descent algorithm for quantum state tomography},
+  author = {Wang, Yong and Liu, Lijun and Cheng, Shuming and Li, Li and Chen, Jie},
+  journal = {Phys. Rev. Res.},
+  volume = {6},
+  issue = {3},
+  pages = {033034},
+  numpages = {11},
+  year = {2024},
+  month = {Jul},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevResearch.6.033034},
+  url = {https://link.aps.org/doi/10.1103/PhysRevResearch.6.033034}
 }
 ```
 
@@ -52,34 +57,36 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--POVM", type=str, default="Tetra4", help="type of POVM")
 parser.add_argument("--K", type=int, default=4, help='number of operators in single-qubit POVM')
 
-parser.add_argument("--na_state", type=str, default="real_random", help="name of state in library")
-parser.add_argument("--P_state", type=float, default=0.5, help="P of mixed state")
+parser.add_argument("--n_qubits", type=int, default=6, help="number of qubits")
+parser.add_argument("--na_state", type=str, default="real_random_rank", help="name of state in library")
+parser.add_argument("--P_state", type=float, default=0.1, help="P of mixed state")
+parser.add_argument("--rank", type=float, default=2**5, help="rank of mixed state")
 parser.add_argument("--ty_state", type=str, default="mixed", help="type of state (pure, mixed)")
-parser.add_argument("--n_qubits", type=int, default=8, help="number of qubits")
 
-parser.add_argument("--noise", type=str, default="noise", help="have or have not sample noise (noise, no_noise, depolar_noise)")
-parser.add_argument("--n_samples", type=int, default=int(1e11), help="number of samples")
+parser.add_argument("--noise", type=str, default="noise", help="have or have not sample noise (noise, no_noise)")
+parser.add_argument("--n_samples", type=int, default=int(1e10), help="number of samples")
 parser.add_argument("--P_povm", type=float, default=1, help="possbility of sampling POVM operators")
 parser.add_argument("--seed_povm", type=float, default=1.0, help="seed of sampling POVM operators")
 parser.add_argument("--read_data", type=bool, default=False, help="read data from text in computer")
 
 parser.add_argument("--n_epochs", type=int, default=1000, help="number of epochs of training")
-parser.add_argument("--lr", type=float, default=0.5, help="optim: learning rate")
+parser.add_argument("--lr", type=float, default=0.1, help="optim: learning rate")
 
-parser.add_argument("--map_method", type=str, default="fac_h", help="map method for output vector to density matrix (fac_t, fac_h, fac_a, proj_F, proj_S, proj_A)")
-parser.add_argument("--P_proj", type=float, default="2", help="coefficient for proj method")
+parser.add_argument("--map_method", type=str, default="fac_h", 
+                        help="map method for output vector to density matrix (fac_t, fac_h, fac_a, proj_M, proj_S, proj_A)")
+parser.add_argument("--P_proj", type=float, default=1, help="coefficient for proj method")
 ```
 
 ### 2. Run UGD with MRprop algorithm (`main`)
 
 ```python
 print('\n'+'-'*20+'UGD_MRprop'+'-'*20)
-gen_net = UGD_nn(opt.n_qubits, P_idxs, M,
-                 map_method=opt.map_method, P_proj=opt.P_proj).to(torch.float32).to(device)
+gen_net = UGD_nn(opt.na_state, opt.n_qubits, P_idxs, M,
+                                 map_method=opt.map_method, P_proj=opt.P_proj).to(torch.float32).to(device)
 
-net = UGD(gen_net, data, opt.lr, optim_f="M")
+net = UGD(opt.na_state, opt.map_method, gen_net, data, opt.lr, optim_f="M")
 result_save = {'parser': opt,
-               'time': [], 
+               'time': [],
                'epoch': [],
                'Fq': []}
 net.train(opt.n_epochs, fid, result_save)
@@ -88,26 +95,26 @@ result_saves['UGD'] = result_save
 ### 3. Run UGD with MGD algorithm (`main`)
 
 ```python
-print('\n'+'-'*20+'UGD_MGD'+'-'*20)
-gen_net = UGD_nn(opt.n_qubits, P_idxs, M, 
-                 map_method=opt.map_method, P_proj=opt.P_proj).to(torch.float32).to(device)
+print('\n'+'-'*20+'MGD'+'-'*20)
+gen_net = UGD_nn(opt.na_state, opt.n_qubits, P_idxs, M,
+                                 map_method=opt.map_method, P_proj=opt.P_proj).to(torch.float32).to(device)
 
-net = UGD(gen_net, data, opt.lr, optim_f="S")
+net = UGD(opt.na_state, opt.map_method, gen_net, data, opt.lr, optim_f="S")
 result_save = {'parser': opt,
-               'time': [], 
-               'epoch': [],
-               'Fq': []}
+               'time': [],
+                'epoch': [],
+                'Fq': []}
 net.train(opt.n_epochs, fid, result_save)
-result_saves['UGD_MGD'] = result_save
+result_saves['MGD'] = result_save
 ```
 ### 4. Run iMLE algorithm (`main`)
 
 ```python
 print('\n'+'-'*20+'iMLE'+'-'*20)
 result_save = {'parser': opt,
-               'time': [], 
-               'epoch': [],
-               'Fq': []}
+               'time': [],
+                'epoch': [],
+                'Fq': []}
 iMLE(M, opt.n_qubits, data_all, opt.n_epochs, fid, result_save, device)
 result_saves['iMLE'] = result_save
 ```

@@ -2,8 +2,8 @@
 # @Author: yong
 # @Date:   2023-07-10 21:11:25
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-25 22:10:21
-# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
+# @Last Modified time: 2024-07-30 15:14:45
+# @Paper: Efficient factored gradient descent algorithm for quantum state tomography
 
 import torch
 from torch import Tensor
@@ -14,7 +14,6 @@ from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
 import copy
 
 __all__ = ["Rprop", "rprop"]
-
 
 
 class Rprop(Optimizer):

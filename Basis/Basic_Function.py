@@ -2,9 +2,9 @@
 # @Author: foxwy
 # @Date:   2021-04-30 09:48:23
 # @Last Modified by:   yong
-# @Last Modified time: 2024-03-09 23:04:34
+# @Last Modified time: 2024-07-30 15:11:55
 # @Function: Provide some of the most basic functions
-# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
+# @Paper: Efficient factored gradient descent algorithm for quantum state tomography
 
 import os
 import sys
@@ -751,7 +751,6 @@ def eigenvalues_trans_S(eigenvalues, device):
     see paper ``A projected gradient method for optimization over density matrices``,
     this is [torch] version we implemented.
     """
-
     idxs = np.arange(len(eigenvalues))
     for i in range(len(eigenvalues)):
         eigenvalues[idxs] = proj_to_sum_one(eigenvalues[idxs], 2)
@@ -760,6 +759,13 @@ def eigenvalues_trans_S(eigenvalues, device):
         else:
             eigenvalues[eigenvalues < 0] = 0
             idxs = eigenvalues > 0
+
+    return eigenvalues
+
+
+def eigenvalues_trans_M(eigenvalues, device):
+    eigenvalues = torch.maximum(eigenvalues, torch.tensor(0))
+    eigenvalues = eigenvalues_trans_F(eigenvalues, device, 2)
 
     return eigenvalues
 
@@ -801,7 +807,9 @@ def proj_spectrahedron_torch(rho, device, map_method, P_proj=2, trace_flag=1):
     if map_method == 'proj_F':
         eigenvalues = eigenvalues_trans_F(eigenvalues, device, 1)
     elif map_method == 'proj_S':
-        eigenvalues = eigenvalues_trans_F(eigenvalues, device, 2)
+        eigenvalues = eigenvalues_trans_F(eigenvalues, device, 2) 
+    elif map_method == 'proj_M':
+        eigenvalues = eigenvalues_trans_M(eigenvalues, device) 
     elif map_method == 'proj_A':
         eigenvalues = eigenvalues_trans_abs(eigenvalues, P_proj)
     else:
@@ -809,7 +817,7 @@ def proj_spectrahedron_torch(rho, device, map_method, P_proj=2, trace_flag=1):
 
     A = eigenvecs * abs(eigenvalues)
     rho = torch.matmul(A, eigenvecs.T.conj())
-    rho = 0.5 * (rho + rho.T.conj())
+    #rho = 0.5 * (rho + rho.T.conj())
     if trace_flag == 1:
         rho /= torch.trace(rho)  # prevent errors caused by computing accuracy
     return rho
@@ -884,7 +892,7 @@ if __name__ == '__main__':
 
     #print(onehot(np.array([[3, 2], [1, 0]]), 4))
 
-    x = torch.tensor(np.random.normal(size=2**3))
+    x = torch.tensor(np.random.normal(size=2**4))
     print('---x', x)
 
     y = proj_to_sum_one(x, 1)
@@ -893,6 +901,13 @@ if __name__ == '__main__':
     y = proj_to_sum_one(x, 2)
     print(y, sum(y))
 
-    print('F---', eigenvalues_trans_F(x, 'cpu', 1))
-    print('S---', eigenvalues_trans_F(x, 'cpu', 2))
-    print('soft---', softmax(x, 0), sum(softmax(x, 0)))
+    t1 = perf_counter()
+    print('F---', eigenvalues_trans_F(x, 'cpu', 1), perf_counter() - t1)
+
+    t1 = perf_counter()
+    print('S1---', eigenvalues_trans_F(x, 'cpu', 2), perf_counter() - t1)
+    t1 = perf_counter()
+    print('S2---', eigenvalues_trans_S(x, 'cpu'), perf_counter() - t1)
+
+    t1 = perf_counter()
+    print('soft---', softmax(x, 0), sum(softmax(x, 0)), perf_counter() - t1)

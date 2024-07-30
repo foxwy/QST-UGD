@@ -2,10 +2,10 @@
 # @Author: yong
 # @Date:   2022-12-07 09:46:43
 # @Last Modified by:   yong
-# @Last Modified time: 2024-03-09 22:39:44
+# @Last Modified time: 2024-07-30 15:42:29
 # @Author: foxwy
 # @Method: linear regression estimation, recursive LRE algorithm
-# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
+# @Paper: Efficient factored gradient descent algorithm for quantum state tomography
 
 import sys
 import numpy as np
@@ -96,16 +96,22 @@ def LRE(M, n_qubits, P_data, fid, map_method, P_proj, result_save, device='cpu')
     theta = cal_para(X_t, P_data, n_qubits)
     rho = qmt_matrix_torch(theta.to(torch.complex64), [M_basis] * n_qubits)
 
+    #eigenvalues, _ = torch.linalg.eigh(rho)
+    #print('-'*20, eigenvalues)
+
     # state-mapping
-    if map_method == 'chol':
+    if map_method == 'fac_t':
         T = torch.tril(rho)
         rho = torch.matmul(T.T.conj(), T)
-    elif map_method == 'chol_h':
+    elif map_method == 'fac_h':
         rho = torch.matmul(rho.T.conj(), rho)
     else:
         rho = proj_spectrahedron_torch(rho, device, map_method, P_proj)
 
     rho = rho / torch.trace(rho)
+
+    #eigenvalues, _ = torch.linalg.eigh(rho)
+    #print('-'*20, eigenvalues)
 
     time_e = perf_counter()
     time_all = time_e - time_b

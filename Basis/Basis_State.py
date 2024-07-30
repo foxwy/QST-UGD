@@ -2,9 +2,9 @@
 # @Author: foxwy
 # @Date:   2021-01-19 15:38:06
 # @Last Modified by:   yong
-# @Last Modified time: 2023-11-25 23:37:03
+# @Last Modified time: 2024-07-30 15:37:58
 # @Function: Quantum state and quantum measurment
-# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
+# @Paper: Efficient factored gradient descent algorithm for quantum state tomography
 
 import os
 import sys
@@ -46,7 +46,7 @@ class State():
         self.state1 = np.matrix([[0], [1]])
         self.state01 = 1 / np.sqrt(2) * (self.state0 + self.state1)
 
-    def Get_state_rho(self, state_name, N, p=1):
+    def Get_state_rho(self, state_name, N, p=1, r=1):
         """
         Obtain the corresponding quantum state based on the input.
 
@@ -55,6 +55,7 @@ class State():
                 [Product_P], [W_P], [random_P], [real_random].
             N (int): The number of qubits.
             p (int): The P of Werner state, pure state when p == 1, identity matrix when p == 0.
+            r (int): The rank of target state, pure state when r == 1.
 
         Returns:
             matrix: Pure state.
@@ -77,8 +78,10 @@ class State():
             state, rho = self.Get_W_P(N, p)
         elif state_name == 'random_P':
             state, rho = self.Get_random_state(N, p)
-        elif state_name == 'real_random':
-            state, rho = self.Get_real_random_state(N, p)
+        elif state_name == 'real_random_pur':
+            state, rho = self.Get_real_random_state_purity(N, p)
+        elif state_name == 'real_random_rank':
+            state, rho = self.Get_real_random_state_rank(N, r)
         else:
             print('sorry, we have not yet achieved other quantum states!!!')
         return state, rho
@@ -238,46 +241,18 @@ class State():
             rho = x.dot(x.T.conjugate())
             return x, rho
 
-    def Get_uniform_state(self, N, Ns):
-        """
-        Generate ``Ns`` ``N``-qubit states with uniform distribution of purity, with exponential 
-        decay of eigenvalues, see paper ``Projected gradient descent algorithms for 
-        quantum state tomography``.
-
-        Args:
-            N (int): The number of qubits.
-            Ns (int): The number of states.
-        """
-        rho_all = []
-        purity = []
-        Ns_t = 0
-        print('----begin obtain uniform state----')
-        while Ns_t < Ns:
-            purity_p = np.random.uniform(0, 1, 1)[0]
-            _, rho = self.Get_random_state(N, purity_p)
-            rho_all.append(rho)
-
-            pur = np.trace(rho.dot(rho)).real
-            purity.append(pur)
-            Ns_t += 1
-        print('----end obtain uniform state, number of state: {}----'.format(len(purity)))
-        return rho_all, purity
-
-    def Get_real_random_state(self, N, p=None):
-        """
-        Random Werner state, where the pure state has only 0 or 1 or 1i. on each base. see paper 
-        ``Ultrafast quantum state tomography with feed-forward neural networks``.
-        """
-        pos_num = random.sample(range(1, 2**N + 1), 1)[0]
-        pos = random.sample(range(2**N), pos_num)
-        psi = np.zeros((2**N, 1), dtype=np.complex64)
-        psi[pos] = 1
-
-        pos_i_num = random.sample(range(1, pos_num + 1), 1)[0]
-        pos_i = random.sample(pos, pos_i_num)
-        psi[pos_i] = 1j
-
+    def Get_random_pure_state(self, N):
+        psi = np.random.choice(np.array([0, 1, 1j, -1, -1j]), (2**N, 1), replace=True)
+        psi = psi.astype(np.complex64)
         psi /= np.linalg.norm(psi)  # pure state
+        return psi
+
+    def Get_real_random_state_purity(self, N, p=None):
+        """
+        Random Werner state with weight p, where the pure state has only 0 or 1 or 1i on each base. See paper 
+        ``Efficient factored gradient descent algorithm for quantum state tomography``.
+        """
+        psi = self.Get_random_pure_state(N)
         rho = psi.dot(psi.T.conjugate())
 
         if p is None:  # random
@@ -286,6 +261,27 @@ class State():
             assert p >= 0 and p <= 1, print('please input ``p`` of [0, 1]')
 
         rho = p * rho + (1 - p) / 2**N * np.eye(2**N)
+        return psi, rho
+
+    def Get_real_random_state_rank(self, N, r=None):
+        """
+        Random mixed state with rank r, where the pure state has only 0 or 1 or 1i on each base. See paper 
+        ``Efficient factored gradient descent algorithm for quantum state tomography``.
+        """
+        rho = 0
+        rt = 0
+
+        while rt < r:
+            psi = np.random.choice(np.array([0, 1, 1j, -1, -1j]), (2**N, r), replace=True)
+            rho = psi.dot(psi.T.conjugate())
+            rho /= np.trace(rho).real
+
+            rt = np.linalg.matrix_rank(rho, hermitian=True)
+            #eigenvalues, eigenvecs = np.linalg.eigh(rho)
+            #rs = min(eigenvalues)
+            #print(rt, rs)
+        rho /= np.trace(rho).real
+
         return psi, rho
 
     @staticmethod
@@ -517,4 +513,8 @@ if __name__ == '__main__':
         rho_all, _ = State().Get_uniform_state(n, 200)
         np.save('../datasets/uniform_state/N'+str(n)+'.npy', rho_all)'''
 
-    print(Mea_basis(basis='Tetra4').M)
+    #print(Mea_basis(basis='Tetra4').M)
+    r = 10
+    _, rho = State().Get_real_random_state_rank(10, r)
+    print(np.linalg.matrix_rank(rho, hermitian=True), np.trace(rho).real, np.trace(rho @ rho).real, 1/r)
+    print(State().Is_rho(rho))

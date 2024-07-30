@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Author: foxwy
 # @Function: Provide some loss functions
-# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
+# @Paper: Efficient factored gradient descent algorithm for quantum state tomography
 
 import sys
 import numpy as np
@@ -83,7 +83,7 @@ class Fid(Mea_basis):
                 rho_tmp = torch.matmul(rho, self.rho_star)
                 eigenvalues = torch.linalg.eigvals(rho_tmp)  # low
 
-                sqrt_eigvals = torch.sqrt(torch.abs(eigenvalues))
+                sqrt_eigvals = torch.sqrt(torch.abs(eigenvalues.real))
                 Fq = torch.sum(sqrt_eigvals)**2  # trace(sqrtm(sqrtm(self.rho_star).dot(rho).dot(sqrtm(self.rho_star))))**2
 
         Fq = torch.maximum(torch.minimum(Fq, torch.tensor(1)), torch.tensor(0))  # Fq range [0, 1]

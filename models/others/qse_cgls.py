@@ -2,10 +2,10 @@
 # @Author: yong
 # @Date:   2022-12-07 09:46:43
 # @Last Modified by:   yong
-# @Last Modified time: 2024-03-09 22:45:50
+# @Last Modified time: 2024-07-30 15:14:31
 # @Author: foxwy
 # @Method: conjugate-gradient algorithm
-# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
+# @Paper: Efficient factored gradient descent algorithm for quantum state tomography
 
 import sys
 import numpy as np

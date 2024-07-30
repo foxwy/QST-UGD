@@ -2,8 +2,8 @@
 # @Author: yong
 # @Date:   2023-07-10 14:01:40
 # @Last Modified by:   yong
-# @Last Modified time: 2023-07-25 22:10:12
-# @Paper: Unifying the factored and projected gradient descent for quantum state tomography
+# @Last Modified time: 2024-07-30 15:14:52
+# @Paper: Efficient factored gradient descent algorithm for quantum state tomography
 
 import torch
 from torch.optim.optimizer import Optimizer
